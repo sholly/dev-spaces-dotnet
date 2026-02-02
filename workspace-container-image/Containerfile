@@ -1,11 +1,11 @@
-FROM registry.access.redhat.com/ubi10/ubi:10.0
+FROM registry.access.redhat.com/ubi9/ubi:9.7
 
 ARG USER_HOME_DIR="/home/user"
 ARG WORK_DIR="/projects"
 
-ARG INSTALL_PACKAGES="dotnet-runtime-9.0"
+ARG INSTALL_PACKAGES="dotnet-runtime-6.0"
 
-ARG INSTALL_PACKAGES="procps-ng openssl git tar gzip zip xz unzip which shadow-utils bash zsh vi wget curl jq podman buildah skopeo python3-pip python3-devel fuse-overlayfs util-linux vim-minimal vim-enhanced dotnet-hostfxr-9.0 dotnet-runtime-9.0 dotnet-sdk-9.0"
+ARG INSTALL_PACKAGES="procps-ng openssl git tar gzip zip xz unzip which shadow-utils bash zsh vi wget jq podman buildah skopeo python3-pip python3-devel fuse-overlayfs util-linux vim-minimal vim-enhanced dotnet-hostfxr-6.0 dotnet-runtime-6.0 dotnet-sdk-6.0"
 
 ENV HOME=${USER_HOME_DIR}
 ENV BUILDAH_ISOLATION=chroot
@@ -35,6 +35,10 @@ RUN set -e ; \
     ln -s /projects/bin/oc /usr/local/bin/oc ; \
     ln -s /projects/bin/kubectl /usr/local/bin/kubectl
 
+RUN curl -O https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz ; \
+    tar xvf node-v22.11.0-linux-x64.tar.xz -C /usr/local/; 
+
+RUN echo "PATH=/usr/local/node-v22.11.0-linux-x64/bin:$PATH" >> /etc/bashrc
 USER 1000
 WORKDIR ${WORK_DIR}
 ENTRYPOINT ["/usr/libexec/podman/catatonit","--","/entrypoint.sh"]
