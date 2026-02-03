@@ -1,4 +1,5 @@
 FROM registry.access.redhat.com/ubi9/ubi:9.7
+#FROM registry.redhat.io/devspaces/udi-rhel9:3.25.0
 
 ARG USER_HOME_DIR="/home/user"
 ARG WORK_DIR="/projects"
@@ -9,6 +10,7 @@ ARG INSTALL_PACKAGES="procps-ng openssl git tar gzip zip xz unzip which shadow-u
 
 ENV HOME=${USER_HOME_DIR}
 ENV BUILDAH_ISOLATION=chroot
+ENV NVM_DIR=/usr/local/nvm
 
 COPY --chown=0:0 entrypoint.sh /
 
@@ -35,10 +37,23 @@ RUN set -e ; \
     ln -s /projects/bin/oc /usr/local/bin/oc ; \
     ln -s /projects/bin/kubectl /usr/local/bin/kubectl
 
-RUN curl -O https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz ; \
-    tar xvf node-v22.11.0-linux-x64.tar.xz -C /usr/local/; 
+USER 0
+RUN dnf -y module reset nodejs && \
+    dnf -y remove nodejs npm nodejs-* && \ 
+    dnf clean all && rm -rf /var/cache/dnf
 
-RUN echo "PATH=/usr/local/node-v22.11.0-linux-x64/bin:$PATH" >> /etc/bashrc
+RUN mkdir -p "${NVM_DIR}" ;\ 
+    mkdir -p ${HOME}; \
+    curl -fsSL  https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh -o /tmp/install_nvm.sh;\ 
+    touch ${HOME}/.bashrc; \ 
+    bash /tmp/install_nvm.sh; \ 
+    rm -f /tmp/install_nvm.sh; \
+    chmod -R 755 "${NVM_DIR}";
+
+RUN printf 'export NVM_DIR="/usr/local/nvm" \n[ -s "$NVM_DIR/nvm.sh"]&& . "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"\n' > /etc/profile.d/nvm.sh ;
+
+RUN bash -lc 'source /etc/profile.d/nvm.sh && nvm install 22 && nvm alias default 22 && npm cache clean --force || true';
+    
 USER 1000
 WORKDIR ${WORK_DIR}
 ENTRYPOINT ["/usr/libexec/podman/catatonit","--","/entrypoint.sh"]
